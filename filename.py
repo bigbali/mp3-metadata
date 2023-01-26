@@ -24,7 +24,7 @@ def generate_permutations(text: str) -> List[str]:
     return result
 
 
-strings_to_remove_permutations_of = [
+STRINGS_TO_REMOVE_PERMUTATIONS_OF = [
     "official",
     "official video",
     "official lyric video",
@@ -44,26 +44,27 @@ strings_to_remove_permutations_of = [
     "live",
     "album track",
     "album",
-    "video projection"
+    "video projection",
+    "art video"
 ]
 
-strings_to_remove_additionally = [
+STRINGS_TO_ADDITIONALLY_REMOVE = [
     "| Napalm Records",
 ]
 
-chars = ["-", "–"]
+TITLE_SEPARATORS = ["-", "–"]
 
 
-remove = list(
+SUBSTRINGS_TO_REMOVE = list(
     chain.from_iterable(
         (
             generate_permutations(string)
-            for string in strings_to_remove_permutations_of
+            for string in STRINGS_TO_REMOVE_PERMUTATIONS_OF
         )
     )
 )
 
-remove.extend(strings_to_remove_additionally)
+SUBSTRINGS_TO_REMOVE.extend(STRINGS_TO_ADDITIONALLY_REMOVE)
 
 
 def main():
@@ -79,13 +80,23 @@ def clean_title(title: str, album: str, band: str):
     cleaned_title = title
 
     # if title starts with band name, remove it
-    for char in chars:
+    for char in TITLE_SEPARATORS:
         substring = f"{band.lower()} {char} "
         if cleaned_title.lower().startswith(substring):
             cleaned_title = cleaned_title[len(substring):]
 
-    for substring in remove:
+    # additional case for when there is no separator between title and band name
+    if cleaned_title.lower().startswith(band.lower()):
+        cleaned_title = cleaned_title[len(band):]
+
+    for substring in SUBSTRINGS_TO_REMOVE:
         cleaned_title = cleaned_title.replace(substring, "")
+
+    # need to strip of whitespace for next part
+    cleaned_title = cleaned_title.strip()
+
+    if cleaned_title.startswith(("\"", "\'", "``")) and cleaned_title.endswith(("\"", "\'", "``")):
+        cleaned_title = cleaned_title[1: -1]
 
     # if title contains name of album, remove
     cleaned_title.replace(f"({album})", "")
