@@ -1,105 +1,76 @@
 import sys
 import os
+from typing import List
+from itertools import chain, product
 from mutagen.mp3 import MP3
 from mutagen.id3 import TALB, TIT2, TPE2, TOFN
 
-chars = ["-", "–"]
-substrgings_to_remove = [
-    "(OFFICIAL)",
-    "(Official)",
-    "(official)",
-    "[OFFICIAL]",
-    "[official]",
-    "(OFFICIAL TRACK)",
-    "(Official Track)",
-    "(Official track)",
-    "(official track)",
-    "[OFFICIAL TRACK]",
-    "[Official Track]",
-    "[Official track]",
-    "[official track]",
-    "(OFFICIAL AUDIO)",
-    "(Official Audio)",
-    "(Official audio)",
-    "(official audio)",
-    "[OFFICIAL AUDIO]",
-    "[Official Audio]",
-    "[Official audio]",
-    "[official audio]",
-    "(OFFICIAL VIDEO)",
-    "(Official Video)",
-    "(Official video)",
-    "(official video)",
-    "[OFFICIAL VIDEO]",
-    "[Official Video]",
-    "[Official video]",
-    "[official video]",
-    "(MUSIC VIDEO)",
-    "(Music Video)",
-    "(music video)",
-    "(music video)",
-    "[MUSIC VIDEO]",
-    "[Music Video]",
-    "[music video]",
-    "[music video]",
-    "(MUSIC)",
-    "(Music)",
-    "(music)",
-    "[MUSIC]",
-    "[Music]",
-    "[music]",
-    "(OFFICIAL MUSIC VIDEO)",
-    "(Official Music Video)",
-    "(Official music video)",
-    "(official music video)",
-    "[OFFICIAL MUSIC VIDEO]",
-    "[Official Music Video]",
-    "[Official music video]",
-    "[official music video]",
-    "(OFFICIAL LYRIC VIDEO)",
-    "(Official Lyric Video)",
-    "(Official lyric video)",
-    "(official lyric video)",
-    "[OFFICIAL LYRIC VIDEO]",
-    "[Official Lyric Video]",
-    "[Official lyric video]",
-    "[official lyric video]",
-    "(LYRIC VIDEO)",
-    "(Lyric Video)",
-    "(Lyric video)",
-    "(lyric video)",
-    "[LYRIC VIDEO]",
-    "[Lyric Video]",
-    "[Lyric video]",
-    "[lyric video]",
-    "(LYRIC)",
-    "(Lyric)",
-    "(lyric)",
-    "[LYRIC]",
-    "[Lyric]",
-    "[lyric]",
-    "(Album Track)",
-    "(Album track)",
-    "(BONUS)",
-    "(Bonus)",
-    "(bonus)",
-    "[BONUS]",
-    "[Bonus]",
-    "[bonus]",
-    "(BONUS TRACK)",
-    "(Bonus Track)",
-    "(bonus track)",
-    "[BONUS TRACK]",
-    "[Bonus Track]",
-    "[bonus track]",
+
+def generate_permutations(text: str) -> List[str]:
+    permutations: List[List[str]] = []
+    words = text.split()
+
+    for word in words:
+        permutations.append([word.capitalize(), word.upper(), word.lower()])
+
+    # ChatGPT for the win, lol
+    result = []
+    for sublist in product(*permutations):
+        combined = " ".join(sublist)
+        result.append(f"({combined})")
+        result.append(f"[{combined}]")
+
+    # => ["(Official Video), "[Official Video]", "(OFFICIAL Video)", "[OFFICIAL Video]", ...etc]
+    return result
+
+
+strings_to_remove_permutations_of = [
+    "official",
+    "official video",
+    "official lyric video",
+    "official music video",
+    "official album track",
+    "official track",
+    "official audio",
+    "official live",
+    "music",
+    "music video",
+    "bonus",
+    "bonus track",
+    "lyric",
+    "lyric video",
+    "audio",
+    "track",
+    "live",
+    "album track",
+    "album",
+    "video projection"
+]
+
+strings_to_remove_additionally = [
     "| Napalm Records",
 ]
-# TODO contains: live
+
+chars = ["-", "–"]
+
+
+remove = list(
+    chain.from_iterable(
+        (
+            generate_permutations(string)
+            for string in strings_to_remove_permutations_of
+        )
+    )
+)
+
+remove.extend(strings_to_remove_additionally)
 
 
 def main():
     folder_path = sys.argv[1]
     folder = os.scandir(path=folder_path)
+
+    # generate_permutations("hello there")
     for collection in folder:
         process_collection(collection)
 
@@ -107,16 +78,16 @@ def main():
 def clean_title(title: str, album: str, band: str):
     cleaned_title = title
 
-    # if title starts with band name, cut it
+    # if title starts with band name, remove it
     for char in chars:
         substring = f"{band.lower()} {char} "
         if cleaned_title.lower().startswith(substring):
-            cleaned_title = cleaned_title[len(substring) :]
+            cleaned_title = cleaned_title[len(substring):]
 
-    for substring in substrgings_to_remove:
+    for substring in remove:
         cleaned_title = cleaned_title.replace(substring, "")
 
-    # if any of the following is additionally included, remove it
+    # if title contains name of album, remove
     cleaned_title.replace(f"({album})", "")
     cleaned_title.replace(f"({album.lower()})", "")
     cleaned_title.replace(f"({album.upper()})", "")
@@ -151,7 +122,6 @@ def process_collection(collection: os.DirEntry):
             try:
                 f["TOFN"]
             except KeyError:
-                print("no TOFN")
                 f["TOFN"] = TOFN(encoding=3, text=title)
 
             f.save()
