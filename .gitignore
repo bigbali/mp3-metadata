@@ -1,4 +1,7 @@
 Include
 Lib
 Scripts
+share
 pyvenv.cfg
+debug_cleaned_titles.txt
+debug_permutations.txt

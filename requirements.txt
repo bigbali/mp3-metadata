@@ -1,0 +1,5 @@
+autopep8==2.0.1
+emoji==2.2.0
+mutagen==1.46.0
+pycodestyle==2.10.0
+tomli==2.0.1
