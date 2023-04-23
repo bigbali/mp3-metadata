@@ -9,20 +9,14 @@ import sys
 
 
 def generate_permutations(text: str) -> List[str]:
-    permutations: List[List[str]] = []
+    permutations: List[str] = []
     words = text.split()
 
     for word in words:
-        permutations.append([word.capitalize(), word.upper(), word.lower()])
+        permutations.append(f"({word})")
+        permutations.append(f"[{word}]")
 
-    result = []
-    for sublist in product(*permutations):
-        combined = " ".join(sublist)
-        result.append(f"({combined})")
-        result.append(f"[{combined}]")
-
-    # => ["(Official Video), "[Official Video]", "(OFFICIAL Video)", "[OFFICIAL Video]", ...etc]
-    return result
+    return permutations
 
 
 STRINGS_TO_REMOVE_PERMUTATIONS_OF = [
@@ -36,6 +30,7 @@ STRINGS_TO_REMOVE_PERMUTATIONS_OF = [
     "official audio",
     "official live",
     "official visualizer",
+    "official hd video",
     "music",
     "music video",
     "bonus",
@@ -113,8 +108,16 @@ def clean_title(title: str, album: str, band: str):
     if cleaned_title.lower().startswith(band.lower()):
         cleaned_title = cleaned_title[len(band):]
 
+    # TODO replace permutations with plain lowercase() -> find() -> slice()
     for substring in SUBSTRINGS_TO_REMOVE:
-        cleaned_title = cleaned_title.replace(substring, "")
+        # cleaned_title = cleaned_title.replace(substring, "")
+
+        # ///
+        index_to_remove = cleaned_title.find(substring)
+
+        if index_to_remove != -1:
+            cleaned_title = cleaned_title[:index_to_remove] + \
+                cleaned_title[(len(substring) - 1):]
 
     # need to strip of whitespace for next part
     cleaned_title = cleaned_title.strip()
