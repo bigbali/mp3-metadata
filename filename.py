@@ -8,18 +8,16 @@ import os
 import sys
 
 
-def generate_permutations(text: str) -> List[str]:
-    permutations: List[str] = []
-    words = text.split()
+def bracketize(text: str) -> List[str]:
+    text_with_brackets: List[str] = []
 
-    for word in words:
-        permutations.append(f"({word})")
-        permutations.append(f"[{word}]")
+    text_with_brackets.append(f"({text})")
+    text_with_brackets.append(f"[{text}]")
 
-    return permutations
+    return text_with_brackets
 
 
-STRINGS_TO_REMOVE_PERMUTATIONS_OF = [
+STRINGS_TO_REMOVE = [
     "official",
     "official video",
     "official audio",
@@ -38,6 +36,7 @@ STRINGS_TO_REMOVE_PERMUTATIONS_OF = [
     "lyric",
     "lyric video",
     "audio",
+    "video",
     "track",
     "live",
     "album track",
@@ -57,8 +56,8 @@ TITLE_SEPARATORS = ["-", "–", "—"]
 SUBSTRINGS_TO_REMOVE = list(
     chain.from_iterable(
         (
-            generate_permutations(string)
-            for string in STRINGS_TO_REMOVE_PERMUTATIONS_OF
+            bracketize(string)
+            for string in STRINGS_TO_REMOVE
         )
     )
 )
@@ -108,16 +107,12 @@ def clean_title(title: str, album: str, band: str):
     if cleaned_title.lower().startswith(band.lower()):
         cleaned_title = cleaned_title[len(band):]
 
-    # TODO replace permutations with plain lowercase() -> find() -> slice()
     for substring in SUBSTRINGS_TO_REMOVE:
-        # cleaned_title = cleaned_title.replace(substring, "")
-
-        # ///
-        index_to_remove = cleaned_title.find(substring)
+        index_to_remove = cleaned_title.lower().find(substring)
 
         if index_to_remove != -1:
             cleaned_title = cleaned_title[:index_to_remove] + \
-                cleaned_title[(len(substring) - 1):]
+                cleaned_title[index_to_remove + len(substring):]
 
     # need to strip of whitespace for next part
     cleaned_title = cleaned_title.strip()
@@ -125,10 +120,12 @@ def clean_title(title: str, album: str, band: str):
     if cleaned_title.startswith(("\"", "\'", "``")) and cleaned_title.endswith(("\"", "\'", "``")):
         cleaned_title = cleaned_title[1: -1]
 
-    # if title contains name of album, remove
-    cleaned_title.replace(f"({album})", "")
-    cleaned_title.replace(f"({album.lower()})", "")
-    cleaned_title.replace(f"({album.upper()})", "")
+    # if title contains name of album, remove (except when they are the same)
+    index_to_remove_album = cleaned_title.lower().find(album.lower())
+
+    if index_to_remove_album != -1 and len(substring) != len(album):
+        cleaned_title = cleaned_title[:index_to_remove_album] + \
+            cleaned_title[index_to_remove_album + len(substring):]
 
     return cleaned_title.strip()
 
